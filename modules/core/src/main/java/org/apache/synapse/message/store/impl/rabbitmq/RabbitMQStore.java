@@ -71,6 +71,9 @@ public class RabbitMQStore extends AbstractMessageStore {
     public static final String EXCHANGE_NAME = "store.rabbitmq.exchange.name";
     public static final String RETRY_INTERVAL = "rabbitmq.connection.retry.interval";
     public static final String RETRY_COUNT = "rabbitmq.connection.retry.count";
+    public static final String HEARTBEAT = "rabbitmq.connection.factory.heartbeat";
+    public static final String CONNECTION_TIMEOUT = "rabbitmq.connection.factory.timeout";
+    public static final String NETWORK_RECOVERY_INTERVAL = "rabbitmq.connection.factory.network.recovery.interval";
     public static final String PUBLISHER_CONFIRMS = "store.producer.guaranteed.delivery.enable";
     public static final int DEFAULT_RETRY_INTERVAL = 30000;
     public static final int DEFAULT_RETRY_COUNT = 3;
@@ -148,6 +151,13 @@ public class RabbitMQStore extends AbstractMessageStore {
                 ConnectionFactory.DEFAULT_PASS);
         String virtualHost = StringUtils.defaultIfEmpty(
                 (String) parameters.get(VIRTUAL_HOST), ConnectionFactory.DEFAULT_VHOST);
+        int heartbeat = NumberUtils.toInt(
+                parameters.get(HEARTBEAT), ConnectionFactory.DEFAULT_HEARTBEAT);
+        int connectionTimeout = NumberUtils.toInt(
+                parameters.get(CONNECTION_TIMEOUT), ConnectionFactory.DEFAULT_CONNECTION_TIMEOUT);
+        long networkRecoveryInterval = NumberUtils.toLong(
+                parameters.get(NETWORK_RECOVERY_INTERVAL), ConnectionFactory.DEFAULT_NETWORK_RECOVERY_INTERVAL);
+        
         boolean sslEnabled = BooleanUtils.toBooleanDefaultIfNull(
                 BooleanUtils.toBoolean((String) parameters.get(SSL_ENABLED)), false);
         this.retryInterval = NumberUtils.toInt((String) parameters.get(RETRY_INTERVAL), DEFAULT_RETRY_INTERVAL);
@@ -172,6 +182,9 @@ public class RabbitMQStore extends AbstractMessageStore {
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
         connectionFactory.setVirtualHost(virtualHost);
+        connectionFactory.setRequestedHeartbeat(heartbeat); 
+        connectionFactory.setConnectionTimeout(connectionTimeout);
+        connectionFactory.setNetworkRecoveryInterval(networkRecoveryInterval);        
         connectionFactory.setAutomaticRecoveryEnabled(true);
         connectionFactory.setTopologyRecoveryEnabled(true);
         setSSL(sslEnabled);
@@ -366,6 +379,9 @@ public class RabbitMQStore extends AbstractMessageStore {
             log.debug(nameString() + " created message producer " + producer.getId());
         }
         if (channel == null) {
+            channel = createChannel(producerConnection);
+        } else if (!channel.isOpen()) {
+            channel.abort();
             channel = createChannel(producerConnection);
         }
         producer.setChannel(channel);
