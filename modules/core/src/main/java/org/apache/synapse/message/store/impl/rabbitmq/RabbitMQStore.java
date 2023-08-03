@@ -383,7 +383,7 @@ public class RabbitMQStore extends AbstractMessageStore {
 				channel.abort();
 			} catch (IOException e) {
 				if (log.isDebugEnabled()) {
-					log.debug(nameString() + " error aborting channel: " + e.getMessage());
+					log.debug(nameString() + " error occurred while abotring the malformed channel Error: " + e.getMessage());
 				}
 			}
 			channel = createChannel(producerConnection);
@@ -456,7 +456,7 @@ public class RabbitMQStore extends AbstractMessageStore {
 			try {
 				return Long.valueOf(channel.messageCount(queueName)).intValue();
 			} catch (IOException e) {
-				log.warn(nameString() + " error retrieving message count for queue [" + queueName + "]: "
+				log.warn(nameString() + " error occurred while retrieving messages count for queue [" + queueName + "] Error: "
 						+ e.getMessage());
 			}
 		}
